@@ -1,0 +1,43 @@
+import requests
+import unohelper
+import officehelper
+from com.sun.star.task import XJobExecutor
+from com.sun.star.beans import PropertyValue
+
+class MainJob(unohelper.Base, XJobExecutor):
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def trigger(self, args):
+        # 启动 Flask 服務
+        flask_app_path = r"C:\MyPython\flask_app\app.py"  # 更新為你的 Flask 應用的路徑
+        subprocess.Popen([sys.executable, flask_app_path])
+        # 調用 Flask 服務的 API
+        audio_file_path = r"C:\Users\LAB501\Downloads\test.wav"  # 音頻文件的路徑
+        with open(audio_file_path, 'rb') as audio_file:
+            files = {'audio': audio_file}
+            response = requests.post("http://127.0.0.1:5000/recognize", files=files)
+
+        if response.status_code == 200:
+            # 將返回的文本插入到 LibreOffice 文檔中
+            text = response.json().get('text', '')
+            self.insert_text_into_document(text)
+        else:
+            print("Error: ", response.json().get("error", "Unknown error"))
+
+    def insert_text_into_document(self, text):
+        desktop = self.ctx.ServiceManager.createInstanceWithContext(
+            "com.sun.star.frame.Desktop", self.ctx)
+        model = desktop.getCurrentComponent()
+        if not hasattr(model, "Text"):
+            model = desktop.loadComponentFromURL("private:factory/swriter", "_blank", 0, ())
+        text_cursor = model.Text.createTextCursor()
+        model.Text.insertString(text_cursor, text, 0)
+
+# 启动 UNO 对象
+g_ImplementationHelper = unohelper.ImplementationHelper()
+g_ImplementationHelper.addImplementation(
+    MainJob,
+    "org.extension.stt.do",
+    ("com.sun.star.task.Job",)
+)
