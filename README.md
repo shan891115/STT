@@ -1,5 +1,5 @@
-### 以 .oxt 文件格式打包
-文件夾基本結構
+## 以 .oxt 文件格式打包
+### 文件夾基本結構
 ```python=
 MyExtension/
     META-INF/manifest.xml
